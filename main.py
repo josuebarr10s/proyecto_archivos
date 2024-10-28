@@ -19,12 +19,12 @@ class MainWindow(QMainWindow):
     def initUI(self):
         layout = QVBoxLayout()
 
-        # Botón para seleccionar carpeta
-        self.select_folder_button = QPushButton("Seleccionar Carpeta")
-        self.select_folder_button.clicked.connect(self.select_folder)
-        layout.addWidget(self.select_folder_button)
+        # Botón para seleccionar archivos GIF
+        self.select_files_button = QPushButton("Seleccionar Archivos GIF")
+        self.select_files_button.clicked.connect(self.select_files)
+        layout.addWidget(self.select_files_button)
 
-        # Lista de archivos GIF encontrados
+        # Lista de archivos GIF seleccionados
         self.gif_list = QListWidget()
         self.gif_list.itemClicked.connect(self.display_gif_data)
         layout.addWidget(self.gif_list)
@@ -49,18 +49,17 @@ class MainWindow(QMainWindow):
         container.setLayout(layout)
         self.setCentralWidget(container)
 
-    def select_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "Seleccionar Carpeta")
-        if folder_path:
-            self.load_gif_files(folder_path)
+    def select_files(self):
+        # Permite seleccionar múltiples archivos GIF desde el explorador de archivos
+        file_paths, _ = QFileDialog.getOpenFileNames(self, "Seleccionar Archivos GIF", "", "GIF Files (*.gif)")
+        if file_paths:
+            self.load_gif_files(file_paths)
 
-    def load_gif_files(self, folder_path):
-        self.gif_list.clear()
-        for root, _, files in os.walk(folder_path):
-            for file_name in files:
-                if file_name.lower().endswith('.gif'):
-                    file_path = os.path.join(root, file_name)
-                    self.gif_list.addItem(file_path)
+    def load_gif_files(self, file_paths):
+        self.gif_list.clear()  # Limpiamos la lista antes de cargar nuevos archivos
+        for file_path in file_paths:
+            if file_path.lower().endswith('.gif'):
+                self.gif_list.addItem(file_path)
 
     def display_gif_data(self, item):
         file_path = item.text()
