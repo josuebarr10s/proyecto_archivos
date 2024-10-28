@@ -7,12 +7,13 @@ from data_manager import load_gif_data, save_gif_data
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__()
+        super()._init_()
         self.setWindowTitle("GIF Data Extractor")
         self.setGeometry(100, 100, 800, 600)
 
         # Datos cargados de GIF
         self.gif_data = load_gif_data()
+        self.current_gif_path = None  # Ruta del GIF actualmente seleccionado
 
         self.initUI()
 
@@ -26,8 +27,12 @@ class MainWindow(QMainWindow):
 
         # Lista de archivos GIF seleccionados
         self.gif_list = QListWidget()
-        self.gif_list.itemClicked.connect(self.display_gif_data)
         layout.addWidget(self.gif_list)
+
+        # Botón para analizar el archivo GIF seleccionado
+        self.analyze_button = QPushButton("Analizar GIF")
+        self.analyze_button.clicked.connect(self.analyze_gif)
+        layout.addWidget(self.analyze_button)
 
         # Etiquetas y cuadros de edición
         self.gif_info_label = QLabel("Información del GIF")
@@ -61,34 +66,40 @@ class MainWindow(QMainWindow):
             if file_path.lower().endswith('.gif'):
                 self.gif_list.addItem(file_path)
 
-    def display_gif_data(self, item):
-        file_path = item.text()
-        reader = GIFReader(file_path)
-        reader.read_gif()
-        data = reader.get_data()
-        self.current_gif_path = file_path
-        self.gif_data[file_path] = data
-        gif_info = (
-            f"Archivo: {os.path.basename(file_path)}\n"
-            f"Versión: {data['version']}\n"
-            f"Ancho: {data['width']} px\n"
-            f"Alto: {data['height']} px\n"
-            f"Color de Fondo: {data['background_color_index']}\n"
-            f"Resolución de Color: {data['color_resolution']}\n"
-            f"Tamaño Tabla de Color: {data['size_of_global_color_table']} colores\n"
-            f"Comentarios: {data['comments']}\n"
-        )
-        self.gif_info_label.setText(gif_info)
-        self.edit_comment.setText(data['comments'])
+    def analyze_gif(self):
+        # Verifica si hay un archivo seleccionado en la lista
+        selected_item = self.gif_list.currentItem()
+        if selected_item:
+            file_path = selected_item.text()
+            reader = GIFReader(file_path)
+            reader.read_gif()
+            data = reader.get_data()
+            self.current_gif_path = file_path
+            self.gif_data[file_path] = data
+            # Muestra la información en la etiqueta
+            gif_info = (
+                f"Archivo: {os.path.basename(file_path)}\n"
+                f"Versión: {data['version']}\n"
+                f"Ancho: {data['width']} px\n"
+                f"Alto: {data['height']} px\n"
+                f"Color de Fondo: {data['background_color_index']}\n"
+                f"Resolución de Color: {data['color_resolution']}\n"
+                f"Tamaño Tabla de Color: {data['size_of_global_color_table']} colores\n"
+                f"Comentarios: {data['comments']}\n"
+            )
+            self.gif_info_label.setText(gif_info)
+            self.edit_comment.setText(data['comments'])
+        else:
+            self.gif_info_label.setText("Por favor, selecciona un archivo GIF para analizar.")
 
     def save_changes(self):
         # Guarda los comentarios editados
         if self.current_gif_path in self.gif_data:
             self.gif_data[self.current_gif_path]['comments'] = self.edit_comment.text()
             save_gif_data(self.gif_data)
-            self.display_gif_data(QListWidget().item(self.current_gif_path))
+            self.gif_info_label.setText("Cambios guardados correctamente.")
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
