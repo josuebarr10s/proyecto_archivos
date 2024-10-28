@@ -1,12 +1,42 @@
 import sys
 import os
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QListWidget, QLabel, QVBoxLayout, QWidget, \
-    QPushButton, QLineEdit, QHBoxLayout
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QListWidget, QLabel, QVBoxLayout, QWidget, QPushButton, QLineEdit, QHBoxLayout
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap, QFont
 from gif_reader import GIFReader
 from data_manager import load_gif_data, save_gif_data
 
+class SplashScreen(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Bienvenido")
+        self.setGeometry(100, 100, 600, 400)
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        # Título principal
+        title_label = QLabel("ANALIZADOR DE GIF")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+        
+        # Nombres
+        name_label1 = QLabel("Josue Barrios")
+        name_label1.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        name_label1.setFont(QFont("Arial", 16))
+
+        name_label2 = QLabel("Julio Caceres")
+        name_label2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        name_label2.setFont(QFont("Arial", 16))
+
+        # Agregar etiquetas al layout
+        layout.addWidget(title_label)
+        layout.addWidget(name_label1)
+        layout.addWidget(name_label2)
+
+        # Configurar el layout de la ventana
+        self.setLayout(layout)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -84,7 +114,7 @@ class MainWindow(QMainWindow):
             data = reader.get_data()
             self.current_gif_path = file_path
             self.gif_data[file_path] = data
-
+            
             # Mostrar el GIF en la interfaz
             self.display_gif(file_path)
 
@@ -108,7 +138,7 @@ class MainWindow(QMainWindow):
         # Cargar y mostrar la imagen GIF en el QLabel
         pixmap = QPixmap(file_path)
         self.gif_display.setPixmap(pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio))
-
+    
     def save_changes(self):
         # Guarda los comentarios editados
         if self.current_gif_path in self.gif_data:
@@ -116,9 +146,18 @@ class MainWindow(QMainWindow):
             save_gif_data(self.gif_data)
             self.gif_info_label.setText("Cambios guardados correctamente.")
 
+def main():
+    app = QApplication(sys.argv)
+
+    # Crear y mostrar el Splash Screen
+    splash = SplashScreen()
+    splash.show()
+
+    # Cerrar el Splash Screen después de 3 segundos y abrir la ventana principal
+    QTimer.singleShot(3000, splash.close)  # 3000 ms = 3 segundos
+    QTimer.singleShot(3000, lambda: MainWindow().show())
+
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
-    sys.exit(app.exec())
+    main()
