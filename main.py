@@ -1,13 +1,16 @@
 import sys
 import os
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QListWidget, QLabel, QVBoxLayout, QWidget, QPushButton, QLineEdit, QHBoxLayout
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QListWidget, QLabel, QVBoxLayout, QWidget, \
+    QPushButton, QLineEdit, QHBoxLayout
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap
 from gif_reader import GIFReader
 from data_manager import load_gif_data, save_gif_data
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
-        super()._init_()
+        super().__init__()
         self.setWindowTitle("GIF Data Extractor")
         self.setGeometry(100, 100, 800, 600)
 
@@ -34,7 +37,12 @@ class MainWindow(QMainWindow):
         self.analyze_button.clicked.connect(self.analyze_gif)
         layout.addWidget(self.analyze_button)
 
-        # Etiquetas y cuadros de edición
+        # Área para mostrar el GIF seleccionado
+        self.gif_display = QLabel("Vista previa del GIF")
+        self.gif_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.gif_display)
+
+        # Etiqueta para mostrar la información del GIF
         self.gif_info_label = QLabel("Información del GIF")
         self.gif_info_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.gif_info_label)
@@ -76,6 +84,10 @@ class MainWindow(QMainWindow):
             data = reader.get_data()
             self.current_gif_path = file_path
             self.gif_data[file_path] = data
+
+            # Mostrar el GIF en la interfaz
+            self.display_gif(file_path)
+
             # Muestra la información en la etiqueta
             gif_info = (
                 f"Archivo: {os.path.basename(file_path)}\n"
@@ -92,6 +104,11 @@ class MainWindow(QMainWindow):
         else:
             self.gif_info_label.setText("Por favor, selecciona un archivo GIF para analizar.")
 
+    def display_gif(self, file_path):
+        # Cargar y mostrar la imagen GIF en el QLabel
+        pixmap = QPixmap(file_path)
+        self.gif_display.setPixmap(pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio))
+
     def save_changes(self):
         # Guarda los comentarios editados
         if self.current_gif_path in self.gif_data:
@@ -99,7 +116,8 @@ class MainWindow(QMainWindow):
             save_gif_data(self.gif_data)
             self.gif_info_label.setText("Cambios guardados correctamente.")
 
-if _name_ == "_main_":
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
