@@ -1,22 +1,13 @@
 import sys
 import os
+import json
 from PyQt6.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QFileDialog,
-    QListWidget,
-    QLabel,
-    QVBoxLayout,
-    QWidget,
-    QPushButton,
-    QLineEdit,
-    QHBoxLayout,
+    QApplication, QMainWindow, QFileDialog, QListWidget, QLabel,
+    QVBoxLayout, QWidget, QPushButton, QLineEdit, QHBoxLayout
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QMovie
-from gif_reader import GIFReader
-from data_manager import load_gif_data, save_gif_data
-
+from PIL import Image, ImageSequence
 
 class WelcomeWindow(QMainWindow):
     def __init__(self):
@@ -72,7 +63,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("GIF Data Extractor")
         self.setGeometry(100, 100, 800, 600)
 
-        self.gif_data = load_gif_data()
+        self.gif_data = self.load_gif_data()
         self.current_gif_path = None
 
         self.initUI()
@@ -173,15 +164,11 @@ class MainWindow(QMainWindow):
         selected_item = self.gif_list.currentItem()
         if selected_item:
             file_path = selected_item.text()
-            reader = GIFReader(file_path)
-            reader.read_gif()
-            data = reader.get_data()
             self.current_gif_path = file_path
-            self.gif_data[file_path] = data
+            data = self.read_gif_info(file_path)
 
             self.display_gif(file_path)
 
-            # Muestra la información en la etiqueta
             gif_info = (
                 f"Archivo: {os.path.basename(file_path)}\n"
                 f"Versión: {data['version']}\n"
@@ -194,41 +181,45 @@ class MainWindow(QMainWindow):
             )
             self.gif_info_label.setText(gif_info)
             self.edit_comment.setText(data['comments'])
-        else:
-            self.gif_info_label.setText("Por favor, selecciona un archivo GIF para analizar.")
 
     def display_gif(self, file_path):
-        # Usa QMovie para mostrar el GIF en movimiento
         movie = QMovie(file_path)
         self.gif_display.setMovie(movie)
         movie.start()
 
     def save_changes(self):
-        # Guarda los comentarios editados
-        if self.current_gif_path in self.gif_data:
-            new_comment = self.edit_comment.text()
-            self.gif_data[self.current_gif_path]['comments'] = new_comment
-            save_gif_data(self.gif_data)
+        if not self.current_gif_path:
+            return
 
-            # Actualiza la etiqueta de información con el nuevo comentario
-            self.gif_info_label.setText(self.get_gif_info(self.current_gif_path))
-            self.gif_info_label.setText("Cambios guardados correctamente.")
-            self.gif_info_label.setText(
-                self.get_gif_info(self.current_gif_path))  # Para mostrar la información completa de nuevo
+        new_comment = self.edit_comment.text()
+        self.save_comment_to_gif(self.current_gif_path, new_comment)
+        self.gif_info_label.setText("Cambios guardados correctamente.")
 
-    def get_gif_info(self, file_path):
-        data = self.gif_data[file_path]
-        return (
-            f"Archivo: {os.path.basename(file_path)}\n"
-            f"Versión: {data['version']}\n"
-            f"Ancho: {data['width']} px\n"
-            f"Alto: {data['height']} px\n"
-            f"Color de Fondo: {data['background_color_index']}\n"
-            f"Resolución de Color: {data['color_resolution']}\n"
-            f"Tamaño Tabla de Color: {data['size_of_global_color_table']} colores\n"
-            f"Comentarios: {data['comments']}\n"
-        )
+    def save_comment_to_gif(self, file_path, comment):
+        with Image.open(file_path) as im:
+            frames = [frame.copy() for frame in ImageSequence.Iterator(im)]
+            im.info['comment'] = comment.encode('utf-8')
+            save_path, _ = QFileDialog.getSaveFileName(self, "Guardar GIF Modificado", "", "GIF Files (*.gif)")
+            if save_path:
+                frames[0].save(save_path, save_all=True, append_images=frames[1:], loop=0, duration=im.info['duration'], comment=comment)
 
+    def load_gif_data(self):
+        if os.path.exists("gif_comments.json"):
+            with open("gif_comments.json", "r") as file:
+                return json.load(file)
+        return {}
+
+    def read_gif_info(self, file_path):
+        with Image.open(file_path) as im:
+            return {
+                "version": im.info.get("version", ""),
+                "width": im.width,
+                "height": im.height,
+                "background_color_index": im.info.get("background", -1),
+                "color_resolution": im.info.get("color_resolution", -1),
+                "size_of_global_color_table": len(im.getpalette()) // 3 if im.getpalette() else 0,
+                "comments": im.info.get("comment", b"").decode("utf-8")
+            }
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
